@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Find versions
         id: v
@@ -36,7 +36,7 @@ jobs:
           major=$(echo "${{ steps.v.outputs.latest }}" | cut -d. -f1)
           sed -i -E "s/GeckoView \([0-9]+\)/GeckoView ($major)/; s/Mozilla GeckoView [0-9]+/Mozilla GeckoView $major/" CLAUDE.md README.md 2>/dev/null || true
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         if: steps.v.outputs.latest != steps.v.outputs.current
         with:
           distribution: temurin
@@ -61,6 +61,9 @@ jobs:
         if: steps.v.outputs.latest != steps.v.outputs.current
         uses: peter-evans/create-pull-request@v7
         with:
+          # Needs Settings > Actions > General > "Allow GitHub Actions to create and approve
+          # pull requests", or a PR_TOKEN secret (fine-grained token: Contents + Pull requests write).
+          token: ${{ secrets.PR_TOKEN || github.token }}
           branch: geckoview-${{ steps.v.outputs.latest }}
           commit-message: "chore: update GeckoView to ${{ steps.v.outputs.latest }}"
           title: "Update GeckoView to ${{ steps.v.outputs.latest }}"
@@ -68,7 +71,7 @@ jobs:
             GeckoView ${{ steps.v.outputs.current }} -> ${{ steps.v.outputs.latest }}.
 
             Tests and release compile: **${{ steps.test.outcome }}**.
-            ${{ steps.test.outcome == 'success' && 'Install a build on a phone, check pages, video and the VPN, then merge; the merge publishes a new release.' || 'The new engine broke the build. Check the CI log; usually a changed GeckoView API.' }}
+            ${{ steps.test.outcome == 'success' && 'Install a build on a phone, check pages, video and the VPN, then merge, and push a version tag (or run Actions > Release) to publish it.' || 'The new engine broke the build. Check the CI log; usually a changed GeckoView API.' }}
 
             Release notes: https://firefox-source-docs.mozilla.org/mobile/android/geckoview/
           delete-branch: true
